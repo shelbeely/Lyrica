@@ -417,7 +417,7 @@ def register_routes(app):
                 logger.warning(f"Language detection failed: {str(e)}")
                 result["language"] = None
 
-        # 5. Cache if successful
+        # 6. Cache if successful
         if result.get("status") == "success":
             data = result.get("data", {})
             if data.get("lyrics") or data.get("plain_lyrics") or data.get("lyrics_text"):
@@ -894,7 +894,6 @@ def register_routes(app):
                     "status": "error",
                     "error": {
                         "message": "Failed to search Deezer",
-                        "details": str(e),
                         "timestamp": datetime.now(timezone.utc).isoformat(),
                     },
                 }),
