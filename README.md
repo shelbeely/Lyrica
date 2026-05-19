@@ -12,7 +12,7 @@ https://github.com/Wilooper/LyricaV2.git
 
 ## ✨ Key Features
 
-- **Multi-Source Lyrics Retrieval** - Aggregates from 6 premium sources with intelligent fallback
+- **Multi-Source Lyrics Retrieval** - Aggregates from 9 sources with intelligent fallback
 - **Timestamped Lyrics (LRC)** - Synchronized lyrics with millisecond precision from YouTube Music and LrcLib
 - **Mood & Sentiment Analysis** - AI-powered sentiment detection and word frequency analysis
 - **Rich Metadata** - Song cover art, duration, genre, release date, and artist info
@@ -25,22 +25,58 @@ https://github.com/Wilooper/LyricaV2.git
 - **Comprehensive Logging** - Debug and monitor with detailed request/response logs
 - **Made in India** 🇮🇳 - Optimized for Indian music platforms (JioSaavn integration)
 - **Song Meaning** - Now can tell meaning of song and do a full song analysis
+- **Global Music Support** 🌍 - Expanded to cover music from every continent (see below)
 
 ## What's New:-
 - Added a trending endpoint so so you can access top trending content of any country using apple music
 - Added top querry endpoint so you can get user top querries in your server
 - Added a ai engine to tell meaning of song and for full song analysis(please refer to [Song_analysis_guide.md](Song_analysis_guide.md) for detailed info)
+- **Global expansion**: added Musixmatch, Deezer, and NetEase fetchers; Deezer search endpoint; `/api/regional/search` convenience route; 15 new trending countries; language detection (`?detect_language=true`)
 
 ## 🎵 Supported Sources
 
-| ID | Source | Lyrics Type | Speed |
-|----|--------|-------------|-------|
-| 1 | Genius | Plain | Medium |
-| 2 | LRCLIB | Timestamped | Slow |
-| 3 | SimpMusic | Plain | Fast |
-| 4 | YouTube Music | Timestamped | Medium |
-| 5 | Lyrics.ovh | Plain | Fast |
-| 6 | ChartLyrics | Plain | Fast |
+| ID | Source | Lyrics Type | Speed | Region |
+|----|--------|-------------|-------|--------|
+| 1 | Genius | Plain | Medium | Global |
+| 2 | LRCLIB | Timestamped | Slow | Global |
+| 3 | SimpMusic | Plain | Fast | Global |
+| 4 | YouTube Music | Timestamped | Medium | Global |
+| 5 | Lyrics.ovh | Plain | Fast | Global |
+| 6 | ChartLyrics | Plain | Fast | Global |
+| 7 | Musixmatch | Plain | Fast | Global (100+ languages, needs `MUSIXMATCH_TOKEN`) |
+| 8 | Deezer | Metadata only | Fast | Europe / Latin America / Africa |
+| 9 | NetEase | Plain | Medium | China / East-Southeast Asia |
+
+## 🌍 Global Music Support
+
+Lyrica started in India and still carries that identity with pride, but now covers music from every corner of the world.
+
+### Regional Search Endpoints
+
+| Endpoint | Platform | Auth needed? |
+|----------|----------|-------------|
+| `/api/jiosaavn/search?q=…` | JioSaavn (India) | No |
+| `/api/deezer/search?q=…` | Deezer (Global) | No |
+| `/api/regional/search?q=…&platform=jiosaavn` | JioSaavn only | No |
+| `/api/regional/search?q=…&platform=deezer` | Deezer only | No |
+| `/api/regional/search?q=…` | JioSaavn + Deezer | No |
+
+### Supported Trending Countries
+
+`US` `GB` `IN` `BR` `JP` `DE` `FR` `CA` `AU` `MX`
+`KR` `CN` `NG` `ZA` `AR` `CO` `IT` `ES` `PL` `TR` `ID` `SA` `EG` `PH` `TH`
+
+### Language Detection
+
+Add `?detect_language=true` to any `/lyrics/` request to get the detected ISO 639-1 language code of the returned lyrics:
+
+```bash
+curl "http://127.0.0.1:9999/lyrics/?artist=BTS&song=Dynamite&detect_language=true"
+# → response includes "language": "en"
+
+curl "http://127.0.0.1:9999/lyrics/?artist=Bad%20Bunny&song=Tití%20Me%20Preguntó&detect_language=true"
+# → response includes "language": "es"
+```
 
 ## 📦 Installation
 
@@ -181,6 +217,54 @@ curl "http://127.0.0.1:9999/lyrics/?artist=Arijit%20Singh&song=Tum%20Hi%20Ho&met
 curl "http://127.0.0.1:9999/lyrics/?artist=Arijit%20Singh&song=Tum%20Hi%20Ho&fast=true&timestamps=true&mood=true&metadata=true"
 ```
 
+### Global Music Examples
+
+#### K-Pop (South Korea)
+```bash
+curl "http://127.0.0.1:9999/lyrics/?artist=BTS&song=Dynamite"
+```
+
+#### Latin (Puerto Rico / Dominican Republic)
+```bash
+curl "http://127.0.0.1:9999/lyrics/?artist=Bad%20Bunny&song=Tití%20Me%20Preguntó"
+```
+
+#### Afrobeats (Nigeria)
+```bash
+curl "http://127.0.0.1:9999/lyrics/?artist=Burna%20Boy&song=Last%20Last"
+```
+
+#### Pop (UK)
+```bash
+curl "http://127.0.0.1:9999/lyrics/?artist=Adele&song=Rolling%20in%20the%20Deep"
+```
+
+#### Deezer Search (no API key needed)
+```bash
+curl "http://127.0.0.1:9999/api/deezer/search?q=BTS%20Dynamite&limit=5"
+```
+
+#### Regional Search (JioSaavn + Deezer combined)
+```bash
+curl "http://127.0.0.1:9999/api/regional/search?q=Taylor%20Swift"
+```
+
+#### Language Detection
+```bash
+curl "http://127.0.0.1:9999/lyrics/?artist=Stromae&song=Alors%20On%20Danse&detect_language=true"
+# → "language": "fr"
+```
+
+#### Trending — South Korea
+```bash
+curl "http://127.0.0.1:9999/trending/?country=KR&limit=10"
+```
+
+#### Trending — Nigeria
+```bash
+curl "http://127.0.0.1:9999/trending/?country=NG&limit=10"
+```
+
 ## 🛠️ Troubleshooting
 
 ### No Lyrics Found
@@ -248,6 +332,9 @@ See [LICENSE](LICENSE) file for details.
 - **tranxuanthang & LrcLib Team** - LRC lyrics support
 - **maxrave-dev** - Simp Music integration
 - **JioSaavn API** - Music metadata and streaming
+- **Deezer** - Global music catalogue (free public API)
+- **Musixmatch** - World's largest lyrics database (100+ languages)
+- **NetEase Cloud Music** - China / East-Asia music coverage
 
 ## 📞 Support
 

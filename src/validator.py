@@ -69,6 +69,14 @@ _NON_LATIN_RANGES = [
     (0x0400, 0x04FF),   # Cyrillic
     (0x0370, 0x03FF),   # Greek
     (0x0590, 0x05FF),   # Hebrew
+    # ── Global expansion ─────────────────────────────────────
+    (0x0980, 0x09FF),   # Bengali
+    (0x1200, 0x137F),   # Ethiopic (Amharic / Tigrinya)
+    (0x10A0, 0x10FF),   # Georgian
+    (0x0530, 0x058F),   # Armenian
+    (0x1000, 0x109F),   # Myanmar (Burmese)
+    (0x1780, 0x17FF),   # Khmer
+    (0x0D80, 0x0DFF),   # Sinhala
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -18,10 +18,14 @@ FETCHER_MAP = {
     4: "YouTube Music",
     5: "Lyrics.ovh",
     6: "ChartLyrics",
+    # ── Global expansion ──────────────────────────────────────────────────────
+    7: "Musixmatch",   # 100+ languages, requires MUSIXMATCH_TOKEN
+    8: "Deezer",       # Europe / Latin America / Africa (metadata only)
+    9: "NetEase",      # China / East-Southeast Asia
 }
 
 DEFAULT_SYNCED_SEQUENCE = [2, 3, 4]
-DEFAULT_PLAIN_SEQUENCE  = [1, 2, 3, 4, 5, 6]
+DEFAULT_PLAIN_SEQUENCE  = [1, 2, 3, 4, 5, 6, 7, 9]
 FAST_MODE_SEQUENCE      = [2, 3]   # LRCLIB + SimpMusic
 
 
@@ -33,6 +37,9 @@ def _registry() -> dict:
         4: ("YouTube Music", ALL_FETCHERS.get("youtube")),
         5: ("Lyrics.ovh",    ALL_FETCHERS.get("lyricsovh")),
         6: ("ChartLyrics",   ALL_FETCHERS.get("chartlyrics")),
+        7: ("Musixmatch",    ALL_FETCHERS.get("musixmatch")),
+        8: ("Deezer",        ALL_FETCHERS.get("deezer")),
+        9: ("NetEase",       ALL_FETCHERS.get("netease")),
     }
 
 
@@ -198,11 +205,11 @@ async def fetch_lyrics_controller(
 
         if (
             not fetcher_ids
-            or not all(1 <= x <= 6 for x in fetcher_ids)
-            or len(fetcher_ids) > 6
+            or not all(1 <= x <= 9 for x in fetcher_ids)
+            or len(fetcher_ids) > 9
             or len(fetcher_ids) != len(set(fetcher_ids))
         ):
-            return _err("Invalid sequence: must be unique numbers between 1 and 6")
+            return _err("Invalid sequence: must be unique numbers between 1 and 9")
 
         use_parallel = len(fetcher_ids) > 1
 

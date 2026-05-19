@@ -31,4 +31,9 @@ _try_import("lyricsovh",   "src.sources.lyricsovh_fetcher",    "LyricsOvhFetcher
 _try_import("chartlyrics", "src.sources.chartlyrics_fetcher",  "ChartLyricsFetcher")
 _try_import("lyricsfreek", "src.sources.lyricsfreek_fetcher",  "LyricsFreekFetcher")
 
+# ── Global expansion fetchers (added alongside existing sources) ──────────────
+_try_import("musixmatch",  "src.sources.musixmatch_fetcher",   "MusixmatchFetcher")
+_try_import("deezer",      "src.sources.deezer_fetcher",       "DeezerFetcher")
+_try_import("netease",     "src.sources.netease_fetcher",      "NetEaseFetcher")
+
 logger.info(f"Active fetchers: {list(ALL_FETCHERS.keys())}")

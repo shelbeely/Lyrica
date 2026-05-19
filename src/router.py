@@ -11,6 +11,7 @@ from src.fetch_controller import fetch_lyrics_controller
 from src.sentiment_analyzer import analyze_sentiment, analyze_word_frequency, extract_lyrics_text
 from src.metadata_extractor import enhance_lyrics_with_metadata, get_metadata_only
 from src.sources.jiosaavan_fetcher import search_jiosaavn, get_jiosaavn_stream
+from src.sources.deezer_fetcher import DeezerFetcher
 from src.trending_analytics import TrendingAnalyticsEngine, Country
 from src.config import ADMIN_KEY
 
@@ -18,6 +19,9 @@ logger = get_logger("router")
 
 # Initialize Trending Analytics Engine (global instance)
 trending_engine = TrendingAnalyticsEngine(cache_ttl_hours=24)
+
+# Global Deezer fetcher instance (shared, no auth required)
+_deezer = DeezerFetcher()
 
 # Helper function to run async functions in sync context
 def run_async(coro, timeout=30):
@@ -128,6 +132,25 @@ def register_routes(app):
                             "/api/jiosaavn/play?songLink=<song_link>"
                         ]
                     },
+                    "deezer_search": {
+                        "url": "/api/deezer/search",
+                        "method": "GET",
+                        "description": "Search Deezer (global catalogue — no API key needed)",
+                        "examples": [
+                            "/api/deezer/search?q=Bad%20Bunny",
+                            "/api/deezer/search?q=BTS%20Dynamite&limit=5"
+                        ]
+                    },
+                    "regional_search": {
+                        "url": "/api/regional/search",
+                        "method": "GET",
+                        "description": "Universal search across JioSaavn, Deezer, or both",
+                        "examples": [
+                            "/api/regional/search?q=Adele&platform=deezer",
+                            "/api/regional/search?q=Tum%20Hi%20Ho&platform=jiosaavn",
+                            "/api/regional/search?q=Burna%20Boy"
+                        ]
+                    },
                     "cache_stats": {
                         "url": "/cache/stats",
                         "method": "GET",
@@ -162,7 +185,10 @@ def register_routes(app):
                     "country": {
                         "type": "string",
                         "required": False,
-                        "description": "Country code (US, GB, IN, BR, JP, DE, FR, CA, AU, MX)"
+                        "description": (
+                            "Country code (US, GB, IN, BR, JP, DE, FR, CA, AU, MX, "
+                            "KR, CN, NG, ZA, AR, CO, IT, ES, PL, TR, ID, SA, EG, PH, TH)"
+                        )
                     },
                     "countries": {
                         "type": "string",
@@ -203,6 +229,12 @@ def register_routes(app):
                         "required": False,
                         "default": False,
                         "description": "Use parallel fetching for faster results"
+                    },
+                    "detect_language": {
+                        "type": "boolean",
+                        "required": False,
+                        "default": False,
+                        "description": "Detect the ISO 639-1 language of the returned lyrics"
                     }
                 },
                 "fetchers": {
@@ -211,7 +243,10 @@ def register_routes(app):
                     "3": "SimpMusic",
                     "4": "YouTube Music",
                     "5": "Lyrics.ovh",
-                    "6": "ChartLyrics"
+                    "6": "ChartLyrics",
+                    "7": "Musixmatch (requires MUSIXMATCH_TOKEN)",
+                    "8": "Deezer (metadata only)",
+                    "9": "NetEase (China / East Asia)",
                 }
             }
         )
@@ -231,6 +266,7 @@ def register_routes(app):
         fast_mode = request.args.get("fast", "false").lower() == "true"
         analyze_mood = request.args.get("mood", "false").lower() == "true"
         include_metadata = request.args.get("metadata", "false").lower() == "true"
+        detect_language = request.args.get("detect_language", "false").lower() == "true"
 
         if not artist or not song:
             return (
@@ -367,6 +403,19 @@ def register_routes(app):
             except Exception as e:
                 logger.warning(f"Metadata enhancement failed: {str(e)}")
                 result["metadata_error"] = f"Could not retrieve metadata: {str(e)}"
+
+        # 5. Detect lyrics language if requested (?detect_language=true)
+        if detect_language and result.get("status") == "success":
+            try:
+                from langdetect import detect as _langdetect
+                lyrics_text = extract_lyrics_text(result.get("data", {}))
+                if lyrics_text:
+                    lang_code = _langdetect(lyrics_text)
+                    result["language"] = lang_code
+                    logger.info(f"Language detected: {lang_code} for {artist} - {song}")
+            except Exception as e:
+                logger.warning(f"Language detection failed: {str(e)}")
+                result["language"] = None
 
         # 5. Cache if successful
         if result.get("status") == "success":
@@ -796,6 +845,138 @@ def register_routes(app):
                 }),
                 500,
             )
+
+    @app.route("/api/deezer/search", methods=["GET"])
+    def deezer_search():
+        """Search Deezer's global catalogue (no API key required)"""
+        query = request.args.get("q", "").strip()
+        limit = request.args.get("limit", 20, type=int)
+
+        if not query:
+            return (
+                jsonify({
+                    "status": "error",
+                    "error": {
+                        "message": "Query parameter 'q' is required",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                }),
+                400,
+            )
+
+        if limit < 1 or limit > 100:
+            limit = 20
+
+        logger.info(f"Deezer search query: {query}")
+
+        try:
+            results = _deezer.search(query, limit=limit)
+            if asyncio.iscoroutine(results):
+                results = run_async(results, timeout=30)
+            return jsonify({"status": "success", "results": results})
+        except asyncio.TimeoutError:
+            logger.error(f"Timeout searching Deezer for: {query}")
+            return (
+                jsonify({
+                    "status": "error",
+                    "error": {
+                        "message": "Request timed out",
+                        "details": "Deezer search took too long",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                }),
+                504,
+            )
+        except Exception as e:
+            logger.error(f"Deezer search error: {str(e)}")
+            return (
+                jsonify({
+                    "status": "error",
+                    "error": {
+                        "message": "Failed to search Deezer",
+                        "details": str(e),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                }),
+                500,
+            )
+
+    @app.route("/api/regional/search", methods=["GET"])
+    def regional_search():
+        """
+        Universal search across regional music platforms.
+
+        Query params:
+          q        (required) — search query
+          platform (optional) — 'jiosaavn', 'deezer', or omit for both
+          limit    (optional) — max results per platform (default 20)
+        """
+        query    = request.args.get("q", "").strip()
+        platform = request.args.get("platform", "").strip().lower()
+        limit    = request.args.get("limit", 20, type=int)
+
+        if not query:
+            return (
+                jsonify({
+                    "status": "error",
+                    "error": {
+                        "message": "Query parameter 'q' is required",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                }),
+                400,
+            )
+
+        if limit < 1 or limit > 100:
+            limit = 20
+
+        valid_platforms = ("jiosaavn", "deezer", "")
+        if platform not in valid_platforms:
+            return (
+                jsonify({
+                    "status": "error",
+                    "error": {
+                        "message": f"Invalid platform '{platform}'. "
+                                   f"Choose 'jiosaavn', 'deezer', or omit for both.",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                }),
+                400,
+            )
+
+        logger.info(f"Regional search: q={query!r} platform={platform or 'all'}")
+
+        response_data: dict = {}
+
+        # JioSaavn
+        if platform in ("jiosaavn", ""):
+            try:
+                jiosaavn_results = search_jiosaavn(query, limit=limit)
+                if asyncio.iscoroutine(jiosaavn_results):
+                    jiosaavn_results = run_async(jiosaavn_results, timeout=30)
+                response_data["jiosaavn"] = jiosaavn_results
+            except Exception as e:
+                logger.warning(f"Regional search — JioSaavn failed: {e}")
+                response_data["jiosaavn"] = []
+
+        # Deezer
+        if platform in ("deezer", ""):
+            try:
+                deezer_results = _deezer.search(query, limit=limit)
+                if asyncio.iscoroutine(deezer_results):
+                    deezer_results = run_async(deezer_results, timeout=30)
+                response_data["deezer"] = deezer_results
+            except Exception as e:
+                logger.warning(f"Regional search — Deezer failed: {e}")
+                response_data["deezer"] = []
+
+        return jsonify({
+            "status":    "success",
+            "query":     query,
+            "platforms": list(response_data.keys()),
+            "results":   response_data,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
 
     @app.route("/suggestion", methods=["GET"])
     def suggestion():

@@ -38,6 +38,7 @@ lxml==5.2.2                  # faster BS4 parser
 
 # ── NLP / sentiment ──────────────────────────────────────────
 textblob==0.18.0             # sentiment analysis on lyrics
+langdetect==1.0.9            # ISO 639-1 language detection (?detect_language=true)
 
 # ── Async helpers ────────────────────────────────────────────
 nest_asyncio==1.6.0          # allows nested event loops (Flask sync→async bridge)
@@ -55,3 +56,7 @@ requests==2.32.3
 
 # ── Optional: gevent worker for gunicorn (higher concurrency) ────────────────
 # gevent==24.2.1
+
+# ── Global expansion (new fetchers) ─────────────────────────────────────────
+# Set MUSIXMATCH_TOKEN env var to enable the Musixmatch fetcher (free tier at
+# https://developer.musixmatch.com/).  Deezer and NetEase fetchers need no key.

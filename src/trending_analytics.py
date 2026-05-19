@@ -22,6 +22,22 @@ class Country(Enum):
     CA = "ca"
     AU = "au"
     MX = "mx"
+    # ── Global expansion ──────────────────────────────────────
+    KR = "kr"   # South Korea
+    CN = "cn"   # China
+    NG = "ng"   # Nigeria
+    ZA = "za"   # South Africa
+    AR = "ar"   # Argentina
+    CO = "co"   # Colombia
+    IT = "it"   # Italy
+    ES = "es"   # Spain
+    PL = "pl"   # Poland
+    TR = "tr"   # Turkey
+    ID = "id"   # Indonesia
+    SA = "sa"   # Saudi Arabia
+    EG = "eg"   # Egypt
+    PH = "ph"   # Philippines
+    TH = "th"   # Thailand
 
 class TrendingSong:
     """Represents a trending song with metadata"""
